@@ -50,31 +50,39 @@ mech_new(Host, _GetPassword, _CheckPassword, _CheckPasswordDigest) ->
         host = Host,
         hostfqdn = get_local_fqdn(Host),
         pid = Pid}.
-    
+
 mech_step(State, ClientIn) ->
     catch do_step(State, ClientIn).
 
 do_step(State, ClientIn) when State#state.needsmore == false ->
     handle_step_ok(State, ClientIn);
-    
+
 do_step(State, ClientIn) when State#state.needsmore == true ->
     ?LOG_DEBUG("do_step: ClientIn [~p]~n", [ClientIn]),
-    case egssapi:accept_sec_context(Pid, ClientIn) of
+    try egssapi:accept_sec_context(State#state.pid, ClientIn) of
         {ok, {Ctx, User, _Ccname, ServerOut}} ->
             ?LOG_DEBUG("do_step: ok [~p]~n", [User]),
-            State1 = State#state{user = User},
+            State1 = State#state{ctx = Ctx, user = list_to_binary(User)},
             handle_step_ok(State1, ServerOut);
         {needsmore, {Ctx, ServerOut}} ->
             ?LOG_DEBUG("do_step: needsmore~n", []),
-            State1 = State#state{step = State#state.step + 1},
+            State1 = State#state{ctx = Ctx, step = State#state.step + 1},
             {continue, ServerOut, State1};
         {error, Reason} ->
             ?LOG_DEBUG("do_step: error [~p]~n", [Reason]),
+            {error, gssapi_error}
+    catch
+        {'EXIT',{Reason,_Stack}} ->
+            ?LOG_ERROR("do_step: error [~p]~n", [Reason]),
+            {error, gssapi_error};
+        Reason ->
+            ?LOG_ERROR("do_step: error [~p]~n", [Reason]),
             {error, gssapi_error}
     end.
 
 handle_step_ok(State, <<>>) ->
     check_user(State);
+
 handle_step_ok(State, ServerOut) ->
     ?LOG_DEBUG("continue~n", []),
     State1 = State#state{needsmore = false, step = State#state.step + 1},
@@ -83,11 +91,12 @@ handle_step_ok(State, ServerOut) ->
 check_user(#state{host = Host, user = UserMaybeDomain}) ->
     ?LOG_DEBUG("checkuser: ~p ~p~n", [UserMaybeDomain, Host]),
     case parse_authzid(UserMaybeDomain) of
-        {ok, User1} -> User = User1;
-        _ -> throw({error, parser_failed, UserMaybeDomain});
-    end,
-    ?LOG_DEBUG("GSSAPI authenticated ~p~n", [User]),
-    {ok, [{username, User}, {authzid, User}, {auth_module, undefined}]}.
+        {ok, User} ->
+            ?LOG_DEBUG("GSSAPI authenticated as ~p~n", [User]),
+            {ok, [{username, User}, {authzid, User}, {auth_module, undefined}]};
+        _ ->
+            {error, parser_failed, UserMaybeDomain}
+    end.
 
 get_local_fqdn(Host) ->
     {ok, FQDNs} = xmpp_config:fqdn(Host),
@@ -96,10 +105,18 @@ get_local_fqdn(Host) ->
         _ -> FQDNs
     end.
 
--spec parse_authzid(binary()) -> {ok, binary()} | error.
-parse_authzid(S) ->
+-spec parse_authzid(binary() | [_]) -> {ok, binary() | [_]} | error.
+parse_authzid(S) when is_binary(S) ->
     case binary:split(S, <<$@>>) of
         [User] -> {ok, User};
         [User, _Domain] -> {ok, User};
         _ -> error
+    end;
+parse_authzid(S) when is_list(S) ->
+    case lists:splitwith(fun (A) -> A /= $@ end, S) of
+        {User, []} -> {ok, User};
+        {User, _ADomain} -> {ok, User};
+        Error ->
+            ?LOG_ERROR("parse error ~p -> ~p~n", [S, Error]),
+            error
     end.
