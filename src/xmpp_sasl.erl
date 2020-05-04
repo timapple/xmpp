@@ -37,7 +37,7 @@
 -type mech_state() :: term().
 -type sasl_module() :: xmpp_sasl_anonymous | xmpp_sasl_digest |
 		       xmpp_sasl_oauth | xmpp_sasl_plain |
-		       xmpp_sasl_scram.
+		       xmpp_sasl_scram | xmpp_sasl_gssapi.
 -type sasl_state() :: #sasl_state{}.
 -type sasl_property() :: {username, binary()} |
 			 {authzid, binary()} |
@@ -51,6 +51,7 @@
 			xmpp_sasl_oauth:error_reason() |
 			xmpp_sasl_plain:error_reason() |
 			xmpp_sasl_scram:error_reason() |
+			xmpp_sasl_gssapi:error_reason() |
 			unsupported_mechanism | nodeprep_failed |
 			empty_username | aborted.
 
@@ -86,7 +87,7 @@ format_error(Mech, Reason) ->
 -spec listmech() -> [mechanism()].
 listmech() ->
     [<<"ANONYMOUS">>,<<"DIGEST-MD5">>,<<"PLAIN">>,
-     <<"SCRAM-SHA-1">>,<<"X-OAUTH2">>].
+     <<"SCRAM-SHA-1">>,<<"X-OAUTH2">>,<<"GSSAPI">>].
 
 -spec server_new(binary(),
 		 get_password_fun(),
@@ -154,4 +155,5 @@ get_mod(<<"DIGEST-MD5">>) -> xmpp_sasl_digest;
 get_mod(<<"X-OAUTH2">>) -> xmpp_sasl_oauth;
 get_mod(<<"PLAIN">>) -> xmpp_sasl_plain;
 get_mod(<<"SCRAM-SHA-1">>) -> xmpp_sasl_scram;
+get_mod(<<"GSSAPI">>) -> xmpp_sasl_gssapi;
 get_mod(_) -> undefined.
