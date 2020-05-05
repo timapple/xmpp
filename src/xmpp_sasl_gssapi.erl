@@ -33,7 +33,8 @@
                 step = 0,
                 host,
                 hostfqdn,
-                user}).
+                user,
+                check_password}).
 
 -spec format_error(error_reason()) -> {atom(), binary()}.
 format_error(not_authorized) ->
@@ -43,13 +44,14 @@ format_error(gssapi_error) ->
 format_error(parser_failed) ->
     {'bad-protocol', <<"User decoding failed">>}.
 
-mech_new(Host, _GetPassword, _CheckPassword, _CheckPasswordDigest) ->
+mech_new(Host, _GetPassword, CheckPassword, _CheckPasswordDigest) ->
     {ok, Pid} = egssapi:start_link(),
     #state{
         step = 1,
         host = Host,
         hostfqdn = get_local_fqdn(Host),
-        pid = Pid}.
+        pid = Pid,
+        check_password = CheckPassword}.
 
 mech_step(State, ClientIn) ->
     catch do_step(State, ClientIn).
@@ -88,12 +90,19 @@ handle_step_ok(State, ServerOut) ->
     State1 = State#state{needsmore = false, step = State#state.step + 1},
     {continue, ServerOut, State1}.
 
-check_user(#state{host = Host, user = UserMaybeDomain}) ->
+check_user(#state{host = Host, user = UserMaybeDomain} = State) ->
     ?LOG_DEBUG("checkuser: ~p ~p~n", [UserMaybeDomain, Host]),
     case parse_authzid(UserMaybeDomain) of
         {ok, User} ->
             ?LOG_DEBUG("GSSAPI authenticated as ~p~n", [User]),
-            {ok, [{username, User}, {authzid, User}, {auth_module, undefined}]};
+            case (State#state.check_password)(User, User, <<>>) of
+                {true, AuthModule} ->
+                    {ok, [{username, User},
+                          {authzid, User},
+                          {auth_module, AuthModule}]};
+                _ ->
+                    {error, not_authorized, User}
+            end;
         _ ->
             {error, parser_failed, UserMaybeDomain}
     end.
