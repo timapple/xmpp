@@ -61,7 +61,7 @@ do_step(State, ClientIn) when State#state.needsmore == false ->
 
 do_step(State, ClientIn) when State#state.needsmore == true ->
     ?LOG_DEBUG("do_step: ClientIn [~p]~n", [ClientIn]),
-    try egssapi:accept_sec_context(State#state.pid, ClientIn) of
+    try spnego:accept_sec_context(State#state.pid, ClientIn) of
         {ok, {Ctx, User, _Ccname, ServerOut}} ->
             ?LOG_DEBUG("do_step: ok [~p]~n", [User]),
             State1 = State#state{ctx = Ctx, user = list_to_binary(User)},

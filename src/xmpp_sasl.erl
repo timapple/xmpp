@@ -87,7 +87,7 @@ format_error(Mech, Reason) ->
 -spec listmech() -> [mechanism()].
 listmech() ->
     [<<"ANONYMOUS">>,<<"DIGEST-MD5">>,<<"PLAIN">>,
-     <<"SCRAM-SHA-1">>,<<"X-OAUTH2">>,<<"GSSAPI">>].
+     <<"SCRAM-SHA-1">>,<<"X-OAUTH2">>,<<"GSSAPI">>,<<"SPNEGO">>].
 
 -spec server_new(binary(),
 		 get_password_fun(),
@@ -156,4 +156,5 @@ get_mod(<<"X-OAUTH2">>) -> xmpp_sasl_oauth;
 get_mod(<<"PLAIN">>) -> xmpp_sasl_plain;
 get_mod(<<"SCRAM-SHA-1">>) -> xmpp_sasl_scram;
 get_mod(<<"GSSAPI">>) -> xmpp_sasl_gssapi;
+get_mod(<<"SPNEGO">>) -> xmpp_sasl_gssapi;
 get_mod(_) -> undefined.
