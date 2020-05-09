@@ -70,15 +70,15 @@ do_step(State, ClientIn) when State#state.needsmore == true ->
             ?LOG_DEBUG("do_step: needsmore~n", []),
             State1 = State#state{ctx = Ctx, step = State#state.step + 1},
             {continue, ServerOut, State1};
-        {error, Reason} ->
-            ?LOG_DEBUG("do_step: error [~p]~n", [Reason]),
+        {error, _Reason} ->
+            ?LOG_DEBUG("do_step: error [~p]~n", [_Reason]),
             {error, gssapi_error}
     catch
-        {'EXIT',{Reason,_Stack}} ->
-            ?LOG_ERROR("do_step: error [~p]~n", [Reason]),
+        {'EXIT',{_Reason,_Stack}} ->
+            ?LOG_ERROR("do_step: error [~p]~n", [_Reason]),
             {error, gssapi_error};
-        Reason ->
-            ?LOG_ERROR("do_step: error [~p]~n", [Reason]),
+        _Reason ->
+            ?LOG_ERROR("do_step: error [~p]~n", [_Reason]),
             {error, gssapi_error}
     end.
 
@@ -90,8 +90,8 @@ handle_step_ok(State, ServerOut) ->
     State1 = State#state{needsmore = false, step = State#state.step + 1},
     {continue, ServerOut, State1}.
 
-check_user(#state{host = Host, user = UserMaybeDomain} = State) ->
-    ?LOG_DEBUG("checkuser: ~p ~p~n", [UserMaybeDomain, Host]),
+check_user(#state{host = _Host, user = UserMaybeDomain} = State) ->
+    ?LOG_DEBUG("checkuser: ~p ~p~n", [UserMaybeDomain, _Host]),
     case parse_authzid(UserMaybeDomain) of
         {ok, User} ->
             ?LOG_DEBUG("GSSAPI authenticated as ~p~n", [User]),
