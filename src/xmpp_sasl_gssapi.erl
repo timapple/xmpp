@@ -24,7 +24,7 @@
 
 -include_lib("kernel/include/logger.hrl").
 
--type error_reason() :: not_authorized | gssapi_error | parser_failed.
+-type error_reason() :: not_authorized | gssapi_error | parser_failed | unsupported_mechanism.
 -export_type([error_reason/0]).
 
 -record(state, {pid,
@@ -40,7 +40,7 @@
 format_error(not_authorized) ->
     {'not-authorized', <<"User unauthorized">>};
 format_error(gssapi_error) ->
-    {'gssapi-error', <<"User unauthenticated">>};
+    {'not-authorized', <<"User unauthenticated">>};
 format_error(parser_failed) ->
     {'bad-protocol', <<"Data decoding failed">>}.
 
@@ -57,7 +57,11 @@ mech_step(State, ClientIn) ->
     catch do_step(State, ClientIn).
 
 do_step(State, ClientIn) when State#state.needsmore == false ->
-    handle_step_ok(State, ClientIn);
+    if ClientIn =/= <<>> ->
+            ?LOG_DEBUG("do_step: needsmore is false but ClientIn is not empty~n", [ClientIn]);
+        true -> ok
+    end,
+    check_user(State);
 
 do_step(State, ClientIn) when State#state.needsmore == true ->
     ?LOG_DEBUG("do_step: ClientIn [~p]~n", [ClientIn]),
@@ -70,6 +74,9 @@ do_step(State, ClientIn) when State#state.needsmore == true ->
             ?LOG_DEBUG("do_step: needsmore~n", []),
             State1 = State#state{ctx = Ctx, step = State#state.step + 1},
             {continue, ServerOut, State1};
+        {error, unsupported_mech} ->
+            ?LOG_DEBUG("do_step: error [unsupported_mech]~n", []),
+            {error, unsupported_mechanism};
         {error, _Reason} ->
             ?LOG_DEBUG("do_step: error [~p]~n", [_Reason]),
             {error, gssapi_error}
