@@ -156,5 +156,5 @@ get_mod(<<"X-OAUTH2">>) -> xmpp_sasl_oauth;
 get_mod(<<"PLAIN">>) -> xmpp_sasl_plain;
 get_mod(<<"SCRAM-SHA-1">>) -> xmpp_sasl_scram;
 get_mod(<<"GSSAPI">>) -> xmpp_sasl_gssapi;
-get_mod(<<"SPNEGO">>) -> xmpp_sasl_gssapi;
+get_mod(<<"GSS-SPNEGO">>) -> xmpp_sasl_gssapi;
 get_mod(_) -> undefined.
