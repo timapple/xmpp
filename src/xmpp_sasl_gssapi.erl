@@ -1,6 +1,6 @@
 %%%-------------------------------------------------------------------
 %%%
-%%% Copyright (C) 2002-2020 ProcessOne, SARL. All Rights Reserved.
+%%% Copyright (C) 2020 timapple
 %%%
 %%% Licensed under the Apache License, Version 2.0 (the "License");
 %%% you may not use this file except in compliance with the License.
@@ -40,9 +40,9 @@
 format_error(not_authorized) ->
     {'not-authorized', <<"User unauthorized">>};
 format_error(gssapi_error) ->
-    {'gssapi-error', <<"User authenticated">>};
+    {'gssapi-error', <<"User unauthenticated">>};
 format_error(parser_failed) ->
-    {'bad-protocol', <<"User decoding failed">>}.
+    {'bad-protocol', <<"Data decoding failed">>}.
 
 mech_new(Host, _GetPassword, CheckPassword, _CheckPasswordDigest) ->
     {ok, Pid} = egssapi:start_link(),
@@ -77,8 +77,8 @@ do_step(State, ClientIn) when State#state.needsmore == true ->
         {'EXIT',{_Reason,_Stack}} ->
             ?LOG_ERROR("do_step: error [~p]~n", [_Reason]),
             {error, gssapi_error};
-        _Reason ->
-            ?LOG_ERROR("do_step: error [~p]~n", [_Reason]),
+        _Exc:_Reason ->
+            ?LOG_ERROR("do_step: error [~p:~p]~n", [_Exc, _Reason]),
             {error, gssapi_error}
     end.
 
