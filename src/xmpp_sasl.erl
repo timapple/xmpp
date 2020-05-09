@@ -87,7 +87,7 @@ format_error(Mech, Reason) ->
 -spec listmech() -> [mechanism()].
 listmech() ->
     [<<"ANONYMOUS">>,<<"DIGEST-MD5">>,<<"PLAIN">>,
-     <<"SCRAM-SHA-1">>,<<"X-OAUTH2">>,<<"GSSAPI">>,<<"SPNEGO">>].
+     <<"SCRAM-SHA-1">>,<<"X-OAUTH2">>,<<"GSSAPI">>,<<"GSS-SPNEGO">>].
 
 -spec server_new(binary(),
 		 get_password_fun(),
